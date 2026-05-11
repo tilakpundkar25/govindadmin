@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Govind Events Admin Panel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: 'Poppins', sans-serif;
+      background: #09090f;
+      color: #f4f4f7;
+      --gold: #d4af37;
+      --surface: rgba(15,15,22,0.82);
+      --surface-strong: rgba(255,255,255,0.1);
+      --border: rgba(255,255,255,0.08);
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: radial-gradient(circle at top, rgba(212,175,55,0.08), transparent 19%), linear-gradient(180deg, #060608 0%, #08080c 100%); }
+    a { color: inherit; text-decoration: none; }
+    button, input, select, textarea { font: inherit; }
+
+    .container { width: min(1180px, calc(100% - 32px)); margin: 0 auto; padding: 32px 0; }
+    .top-nav { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 24px; }
+    .top-nav h1 { margin: 0; font-family: 'Playfair Display', serif; font-size: clamp(2rem, 3vw, 2.5rem); letter-spacing: 0.08em; }
+    .top-nav .nav-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; padding: 0.9rem 1.5rem; border: 1px solid var(--border); background: rgba(212,175,55,0.14); color: #fff; cursor: pointer; transition: transform 0.2s ease, background 0.2s ease; }
+    .btn:hover { transform: translateY(-1px); background: rgba(212,175,55,0.22); }
+
+    .admin-grid { display: grid; gap: 24px; grid-template-columns: 1fr; }
+    .panel { padding: 24px; border-radius: 28px; background: var(--surface); border: 1px solid var(--border); box-shadow: 0 20px 60px rgba(0,0,0,0.25); }
+    .panel h2 { margin: 0 0 1rem; font-family: 'Playfair Display', serif; letter-spacing: 0.04em; }
+    .panel p { margin: 0 0 1.5rem; color: rgba(255,255,255,0.75); line-height: 1.8; }
+
+    .form-grid { display: grid; gap: 1rem; }
+    label { display: grid; gap: 0.35rem; color: #ddd; font-size: 0.95rem; }
+    input, select, textarea { width: 100%; padding: 1rem 1rem; border-radius: 18px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.12); color: #fff; outline: none; }
+    textarea { min-height: 140px; resize: vertical; }
+    .small { font-size: 0.92rem; color: rgba(255,255,255,0.65); }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { padding: 0.95rem 0.75rem; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    th { color: #f8f7f4; font-weight: 600; }
+    td { color: rgba(255,255,255,0.78); }
+    tbody tr:hover { background: rgba(255,255,255,0.03); }
+    .pill { display: inline-flex; align-items: center; justify-content: center; padding: 0.45rem 0.8rem; border-radius: 999px; font-size: 0.82rem; background: rgba(212,175,55,0.12); color: var(--gold); }
+    .danger { background: rgba(255,72,72,0.14); color: #ff8b8b; }
+    .status-bar { margin-top: 1rem; color: var(--gold); }
+    .media-preview { display: grid; gap: 0.75rem; margin-top: 1rem; }
+    .media-card { padding: 1rem; border-radius: 22px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); }
+    .media-card img, .media-card video { width: 100%; border-radius: 18px; }
+    .media-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.8rem; }
+    .hidden { display: none; }
+
+    @media (max-width: 860px) {
+      .admin-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="top-nav">
+      <div>
+        <h1>Govind Events Admin</h1>
+        <p class="small">Manage bookings, photos, reviews, videos, and event statistics.</p>
+      </div>
+      <div class="nav-actions">
+        <a class="btn" href="index.html">Open public site</a>
+        <button id="logoutButton" class="btn hidden" type="button">Sign out</button>
+      </div>
+    </div>
+
+    <section id="loginSection" class="panel">
+      <h2>Admin login</h2>
+      <p>Sign in with your Firebase admin email and password to access the dashboard.</p>
+      <form id="loginForm" class="form-grid">
+        <label>Email<input id="loginEmail" type="email" placeholder="you@example.com" required></label>
+        <label>Password<input id="loginPassword" type="password" placeholder="Password" required></label>
+        <button class="btn" type="submit">Login</button>
+        <p id="authStatus" class="status-bar"></p>
+      </form>
+    </section>
+
+    <div id="adminGrid" class="admin-grid hidden">
+      <section class="panel">
+        <h2>Live bookings</h2>
+        <p>Review incoming booking requests and remove entries if needed.</p>
+        <div id="bookingStatus" class="status-bar"></div>
+        <table>
+          <thead>
+            <tr><th>Name</th><th>Phone</th><th>Event</th><th>Date</th><th>Budget</th><th>Message</th><th></th></tr>
+          </thead>
+          <tbody id="bookingsTable"></tbody>
+        </table>
+      </section>
+
+      <section class="panel">
+        <h2>Review management</h2>
+        <p>Add new reviews and manage the latest feedback shown on the public site.</p>
+        <form id="reviewForm" class="form-grid">
+          <label>Name<input id="reviewName" type="text" placeholder="Client name" required></label>
+          <label>Rating<select id="reviewRating" required><option value="5">5 - Excellent</option><option value="4">4 - Very good</option><option value="3">3 - Good</option><option value="2">2 - Fair</option><option value="1">1 - Needs update</option></select></label>
+          <label>Review<textarea id="reviewMessage" placeholder="Write a new review" required></textarea></label>
+          <button class="btn" type="submit">Publish review</button>
+          <p id="reviewStatus" class="status-bar"></p>
+        </form>
+        <table>
+          <thead><tr><th>Client</th><th>Rating</th><th>Message</th><th></th></tr></thead>
+          <tbody id="reviewsTable"></tbody>
+        </table>
+      </section>
+
+      <section class="panel">
+        <h2>Photo assets</h2>
+        <p>Upload gallery photos for the site and preview the uploaded images.</p>
+        <form id="photoForm" class="form-grid">
+          <label>Title<input id="photoTitle" type="text" placeholder="Photo title or caption" required></label>
+          <label>Choose photo<input id="photoFile" type="file" accept="image/*" required></label>
+          <button class="btn" type="submit">Upload photo</button>
+          <p id="photoStatus" class="status-bar"></p>
+        </form>
+        <div id="photoList" class="media-preview"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Video assets</h2>
+        <p>Upload promotional videos to Firebase Storage and save the metadata for the public site.</p>
+        <form id="videoForm" class="form-grid">
+          <label>Title<input id="videoTitle" type="text" placeholder="Video title" required></label>
+          <label>Choose video<input id="videoFile" type="file" accept="video/*" required></label>
+          <button class="btn" type="submit">Upload video</button>
+          <p id="videoStatus" class="status-bar"></p>
+        </form>
+        <div id="videoList" class="media-preview"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Event stats</h2>
+        <p>Update the completed event count shown on the website.</p>
+        <div class="form-grid">
+          <label>Events completed<input id="eventsCompletedInput" type="number" min="0" step="1"></label>
+          <button id="updateEventsButton" class="btn" type="button">Save event count</button>
+          <p id="statsStatus" class="status-bar"></p>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, onValue, push, set, update, remove, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+    import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAInvsyP-a9SYZtUngnyr1Kwcz0KAz0TUc",
+      authDomain: "govindeventsmanagements.firebaseapp.com",
+      databaseURL: "https://govindeventsmanagements-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "govindeventsmanagements",
+      storageBucket: "govindeventsmanagements.firebasestorage.app",
+      messagingSenderId: "213080181690",
+      appId: "1:213080181690:web:6c673db533ca44d77b6b83",
+      measurementId: "G-VLGLG64N6Y"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const database = getDatabase(app);
+    const storage = getStorage(app);
+    const auth = getAuth(app);
+
+    const bookingsTable = document.getElementById('bookingsTable');
+    const bookingStatus = document.getElementById('bookingStatus');
+    const reviewsTable = document.getElementById('reviewsTable');
+    const reviewStatus = document.getElementById('reviewStatus');
+    const photoStatus = document.getElementById('photoStatus');
+    const videoStatus = document.getElementById('videoStatus');
+    const statsStatus = document.getElementById('statsStatus');
+    const eventsCompletedInput = document.getElementById('eventsCompletedInput');
+    const loginSection = document.getElementById('loginSection');
+    const loginForm = document.getElementById('loginForm');
+    const loginEmail = document.getElementById('loginEmail');
+    const loginPassword = document.getElementById('loginPassword');
+    const authStatus = document.getElementById('authStatus');
+    const adminGrid = document.getElementById('adminGrid');
+    const logoutButton = document.getElementById('logoutButton');
+
+    const bookingsRef = ref(database, 'bookings');
+    const reviewsRef = ref(database, 'reviews');
+    const photosRef = ref(database, 'photos');
+    const videosRef = ref(database, 'videos');
+    const statsRef = ref(database, 'stats');
+
+    let adminListenersInitialized = false;
+
+    const initializeAdmin = () => {
+      if (adminListenersInitialized) return;
+      adminListenersInitialized = true;
+      onValue(bookingsRef, renderBookings);
+      onValue(reviewsRef, renderReviews);
+      onValue(photosRef, renderPhotos);
+      onValue(videosRef, renderVideos);
+      onValue(statsRef, renderStats);
+    };
+
+    const formatDate = (value) => {
+      if (!value) return '-';
+      const date = new Date(value);
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    };
+
+    const renderBookings = (snapshot) => {
+      const bookings = snapshot.val() || {};
+      bookingsTable.innerHTML = Object.entries(bookings).map(([id, booking]) => {
+        return `
+          <tr>
+            <td>${booking.name || '-'}</td>
+            <td>${booking.phone || '-'}</td>
+            <td>${booking.eventType || '-'}</td>
+            <td>${booking.date || '-'}</td>
+            <td>${booking.budget || '-'}</td>
+            <td>${booking.message || '-'}</td>
+            <td><button class="btn danger" type="button" data-id="${id}">Delete</button></td>
+          </tr>
+        `;
+      }).join('');
+      bookingsTable.querySelectorAll('button[data-id]').forEach(button => {
+        button.addEventListener('click', async () => {
+          const id = button.dataset.id;
+          await remove(ref(database, `bookings/${id}`));
+          bookingStatus.textContent = 'Booking removed successfully.';
+        });
+      });
+    };
+
+    const renderReviews = (snapshot) => {
+      const reviews = snapshot.val() || {};
+      reviewsTable.innerHTML = Object.entries(reviews).map(([id, review]) => {
+        return `
+          <tr>
+            <td>${review.name || '-'}</td>
+            <td><span class="pill">${review.rating || 0}★</span></td>
+            <td>${review.message || '-'}</td>
+            <td><button class="btn danger" type="button" data-id="${id}">Delete</button></td>
+          </tr>
+        `;
+      }).join('');
+      reviewsTable.querySelectorAll('button[data-id]').forEach(button => {
+        button.addEventListener('click', async () => {
+          const id = button.dataset.id;
+          await remove(ref(database, `reviews/${id}`));
+          reviewStatus.textContent = 'Review deleted.';
+        });
+      });
+    };
+
+    const renderPhotos = (snapshot) => {
+      const photos = snapshot.val() || {};
+      const photoList = document.getElementById('photoList');
+      photoList.innerHTML = Object.entries(photos).map(([id, photo]) => {
+        return `
+          <div class="media-card">
+            <img src="${photo.url}" alt="${photo.title || 'Gallery photo'}" />
+            <div class="media-actions">
+              <span class="pill">${photo.title || 'Untitled'}</span>
+              <button class="btn danger" type="button" data-id="${id}">Delete</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+      photoList.querySelectorAll('button[data-id]').forEach(button => {
+        button.addEventListener('click', async () => {
+          const id = button.dataset.id;
+          await remove(ref(database, `photos/${id}`));
+          photoStatus.textContent = 'Photo metadata removed.';
+        });
+      });
+    };
+
+    const renderVideos = (snapshot) => {
+      const videos = snapshot.val() || {};
+      const videoList = document.getElementById('videoList');
+      videoList.innerHTML = Object.entries(videos).map(([id, video]) => {
+        return `
+          <div class="media-card">
+            <video controls src="${video.url}" title="${video.title || 'Video asset'}"></video>
+            <div class="media-actions">
+              <span class="pill">${video.title || 'Untitled'}</span>
+              <button class="btn danger" type="button" data-id="${id}">Delete</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+      videoList.querySelectorAll('button[data-id]').forEach(button => {
+        button.addEventListener('click', async () => {
+          const id = button.dataset.id;
+          await remove(ref(database, `videos/${id}`));
+          videoStatus.textContent = 'Video metadata removed.';
+        });
+      });
+    };
+
+    const renderStats = (snapshot) => {
+      const stats = snapshot.val() || {};
+      eventsCompletedInput.value = stats.eventsCompleted ?? '';
+    };
+
+    const uploadFileToStorage = (file, path) => {
+      return new Promise((resolve, reject) => {
+        const storageReference = storageRef(storage, path);
+        const uploadTask = uploadBytesResumable(storageReference, file);
+        uploadTask.on('state_changed', null, reject, async () => {
+          const url = await getDownloadURL(uploadTask.snapshot.ref);
+          resolve(url);
+        });
+      });
+    };
+
+    document.getElementById('reviewForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      reviewStatus.textContent = 'Publishing review…';
+      const name = document.getElementById('reviewName').value.trim();
+      const rating = Number(document.getElementById('reviewRating').value);
+      const message = document.getElementById('reviewMessage').value.trim();
+      const newReviewRef = push(reviewsRef);
+      await set(newReviewRef, { name, rating, message, createdAt: serverTimestamp() });
+      document.getElementById('reviewForm').reset();
+      reviewStatus.textContent = 'Review published successfully.';
+    });
+
+    document.getElementById('photoForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      photoStatus.textContent = 'Uploading photo…';
+      const title = document.getElementById('photoTitle').value.trim();
+      const file = document.getElementById('photoFile').files[0];
+      if (!file) return;
+      const url = await uploadFileToStorage(file, `gallery-photos/${Date.now()}-${file.name}`);
+      const newPhotoRef = push(photosRef);
+      await set(newPhotoRef, { title, url, createdAt: serverTimestamp() });
+      document.getElementById('photoForm').reset();
+      photoStatus.textContent = 'Photo uploaded successfully.';
+    });
+
+    document.getElementById('videoForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      videoStatus.textContent = 'Uploading video…';
+      const title = document.getElementById('videoTitle').value.trim();
+      const file = document.getElementById('videoFile').files[0];
+      if (!file) return;
+      const url = await uploadFileToStorage(file, `gallery-videos/${Date.now()}-${file.name}`);
+      const newVideoRef = push(videosRef);
+      await set(newVideoRef, { title, url, createdAt: serverTimestamp() });
+      document.getElementById('videoForm').reset();
+      videoStatus.textContent = 'Video uploaded successfully.';
+    });
+
+    loginForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      authStatus.textContent = 'Signing in…';
+      try {
+        await signInWithEmailAndPassword(auth, loginEmail.value.trim(), loginPassword.value);
+        authStatus.textContent = 'Signed in successfully.';
+        loginPassword.value = '';
+      } catch (error) {
+        console.error('Login failed:', error);
+        authStatus.textContent = 'Login failed. Check email/password and try again.';
+      }
+    });
+
+    logoutButton.addEventListener('click', async () => {
+      await signOut(auth);
+      authStatus.textContent = 'You have been signed out.';
+    });
+
+    document.getElementById('updateEventsButton').addEventListener('click', async () => {
+      const value = Number(eventsCompletedInput.value || 0);
+      if (Number.isNaN(value) || value < 0) {
+        statsStatus.textContent = 'Enter a valid number.';
+        return;
+      }
+      await update(statsRef, { eventsCompleted: value });
+      statsStatus.textContent = 'Events completed count updated.';
+    });
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        loginSection.classList.add('hidden');
+        adminGrid.classList.remove('hidden');
+        logoutButton.classList.remove('hidden');
+        authStatus.textContent = `Signed in as ${user.email}`;
+        initializeAdmin();
+      } else {
+        loginSection.classList.remove('hidden');
+        adminGrid.classList.add('hidden');
+        logoutButton.classList.add('hidden');
+        authStatus.textContent = 'Please log in with your Firebase admin account.';
+      }
+    });
+  </script>
+</body>
+</html>
